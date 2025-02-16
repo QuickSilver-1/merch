@@ -14,7 +14,7 @@ CREATE INDEX email_idx ON Users(email);
 -- Создание таблицы Subject
 CREATE TABLE Subject (
     id      SERIAL PRIMARY KEY,
-    name    VARCHAR(32) NOT NULL,
+    name    VARCHAR(32) NOT NULL UNIQUE,
     cost    INT NOT NULL
 );
 
@@ -26,7 +26,7 @@ CREATE TABLE Inventory (
     id           SERIAL PRIMARY KEY,
     subject_name VARCHAR(128) NOT NULL,
     user_id      INT NOT NULL,
-    FOREIGN KEY (subject_name) REFERENCES Subject(id),
+    FOREIGN KEY (subject_name) REFERENCES Subject(name),
     FOREIGN KEY (user_id) REFERENCES Users(id)
 );
 
@@ -41,8 +41,8 @@ CREATE TABLE Transaction (
     sender_name   VARCHAR(256) NOT NULL,
     receiver_name VARCHAR(256) NOT NULL,
     amount        INT NOT NULL,
-    FOREIGN KEY (sender_name) REFERENCES Users(id),
-    FOREIGN KEY (receiver_name) REFERENCES Users(id)
+    FOREIGN KEY (sender_name) REFERENCES Users(email),
+    FOREIGN KEY (receiver_name) REFERENCES Users(email)
 );
 
 -- Создание индекса на sender_name в таблице Transaction

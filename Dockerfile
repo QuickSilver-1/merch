@@ -13,5 +13,5 @@ WORKDIR /
 COPY --from=builder avito-shop-service/. .
 WORKDIR /avito-shop-service/cmd/merch
 COPY --from=builder avito-shop-service/cmd/merch .
-EXPOSE 8081
+EXPOSE 8080
 CMD ["avito-shop-service/main"]
