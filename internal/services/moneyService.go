@@ -7,7 +7,7 @@ import (
 )
 
 // NoMoneyError используется для обозначения ошибки недостатка средств
-type NoMoneyError = InvalidPassword
+type NoMoneyError = domain.BaseError
 
 // MoneyService предоставляет методы для работы с покупками и переводами средств
 type MoneyService struct {

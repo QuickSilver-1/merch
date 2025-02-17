@@ -6,27 +6,25 @@ import (
 
 // LoggerRepo - мок-объект для интерфейса LoggerRepo
 type LoggerRepo struct {
-    mock.Mock
+	mock.Mock
 }
 
 func (m *LoggerRepo) Debug(message string) {
-    m.Called(message)
+	m.Called(message)
 }
 
 func (m *LoggerRepo) Info(message string) {
-    m.Called(message)
+	m.Called(message)
 }
 
-
 func (m *LoggerRepo) Warn(message string) {
-    m.Called(message)
+	m.Called(message)
 }
 
 func (m *LoggerRepo) Error(message string) {
-    m.Called(message)
+	m.Called(message)
 }
 
-
 func (m *LoggerRepo) Fatal(message string) {
-    m.Called(message)
+	m.Called(message)
 }

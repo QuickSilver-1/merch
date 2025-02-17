@@ -23,7 +23,7 @@ func main() {
 		logger.Error("Failed to load env fail")
 		return
 	}
-	
+
 	host := os.Getenv("DB_HOST")
 	port := os.Getenv("DB_PORT")
 	user := os.Getenv("DB_USER")

@@ -85,7 +85,6 @@ func (s *Auth) DecodeToken(tokenStr domain.Token) (*domain.AuthorizationToken, e
 		return nil, &e.NeedAuthorization{
 			Code: http.StatusUnauthorized,
 			Err:  "Bad token's signature",
-		
 		}
 	}
 

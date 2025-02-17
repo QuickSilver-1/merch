@@ -1,40 +1,26 @@
 package customError
 
-// BaseError представляет собой базовую ошибку с кодом и сообщением
-type BaseError struct {
-	Code int    // Код ошибки
-	Err  string // Сообщение об ошибке
-}
-
-// Error возвращает сообщение об ошибке
-func (e *BaseError) Error() string {
-	return e.Err
-}
-
-// GetCode возвращает код ошибки
-func (e *BaseError) GetCode() int {
-	return e.Code
-}
+import "merch/internal/domain"
 
 // Алиасы типов для различных типов ошибок
-type JWTGenerationError = BaseError
+type JWTGenerationError = domain.BaseError
 
-type JWTDecodeError = BaseError
+type JWTDecodeError = domain.BaseError
 
-type NeedAuthorization = BaseError
+type NeedAuthorization = domain.BaseError
 
-type InvalidPasswordFormat = BaseError
+type InvalidPasswordFormat = domain.BaseError
 
-type MigratingError = BaseError
+type MigratingError = domain.BaseError
 
-type DbConnectionError = BaseError
+type DbConnectionError = domain.BaseError
 
-type DbQueryError = BaseError
+type DbQueryError = domain.BaseError
 
-type UserCreatingError = BaseError
+type UserCreatingError = domain.BaseError
 
-type RowsNotFoundError = BaseError
+type RowsNotFoundError = domain.BaseError
 
-type TransactionError = BaseError
+type TransactionError = domain.BaseError
 
-type LoggerBuildError = BaseError
+type LoggerBuildError = domain.BaseError

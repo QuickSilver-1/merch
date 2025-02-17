@@ -1,11 +1,11 @@
-version: '3.8'
+version: '3.0'
 
 services:
   avito-shop-service:
       build: .
       container_name: avito-shop-service
       ports:
-        - "8080:8080"
+        - "${SERVER_PORT}:${SERVER_PORT}"
       environment:
         # енвы подключения к БД
         - DATABASE_PORT=${DB_PORT}
@@ -28,9 +28,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: shop
-    volumes:
-      # "./migrations/init.sql" - путь к миграциям БД
-      - ./migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     healthcheck:

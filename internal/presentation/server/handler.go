@@ -21,14 +21,14 @@ type recieverTransaction struct {
 	Amount   int    `json:"amount"`
 }
 
-type senderTransaction struct {
+type SenderTransaction struct {
 	ToUser string `json:"toUser"`
 	Amount int    `json:"amount"`
 }
 
 type coinHistory struct {
 	Received []recieverTransaction `json:"received"`
-	Sent     []senderTransaction   `json:"sent"`
+	Sent     []SenderTransaction   `json:"sent"`
 }
 
 type userForm struct {
@@ -87,7 +87,7 @@ func (*Handlers) GetInfo(ctx *gin.Context) {
 	var coinTransactions coinHistory
 	for _, transaction := range info.Transactions {
 		if transaction.SenderName == token.Email {
-			coinTransactions.Sent = append(coinTransactions.Sent, senderTransaction{
+			coinTransactions.Sent = append(coinTransactions.Sent, SenderTransaction{
 				ToUser: transaction.ReceiverName,
 				Amount: transaction.Amount,
 			})
@@ -115,7 +115,7 @@ func (*Handlers) SendCoin(ctx *gin.Context) {
 		return
 	}
 
-	var data senderTransaction
+	var data SenderTransaction
 	err := json.NewDecoder(ctx.Request.Body).Decode(&data)
 	defer func() {
 		err := ctx.Request.Body.Close()
@@ -133,7 +133,7 @@ func (*Handlers) SendCoin(ctx *gin.Context) {
 	if data.ToUser == token.Email {
 		answerError(ctx, &e.TransactionError{
 			Code: http.StatusBadRequest,
-			Err: "Translation for yourself",
+			Err:  "Translation for yourself",
 		})
 	}
 
@@ -214,7 +214,7 @@ func (*Handlers) Auth(ctx *gin.Context) {
 
 // answerError обрабатывает ошибки и возвращает соответствующий HTTP-статус
 func answerError(ctx *gin.Context, err error) {
-	baseErr := err.(*e.BaseError)
+	baseErr := err.(*domain.BaseError)
 
 	switch baseErr.GetCode() {
 	case http.StatusUnauthorized:
@@ -244,7 +244,7 @@ func getJWT(ctx *gin.Context) *realization.Token {
 	token, _ := UserService.Token(tokenStr)
 
 	return &realization.Token{
-		Id: token.Id,
+		Id:    token.Id,
 		Email: token.Email,
 	}
 }

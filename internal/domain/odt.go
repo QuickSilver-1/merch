@@ -35,3 +35,19 @@ type Msg = string
 type Amount = int
 
 type SuccessfulAuth = bool
+
+// BaseError представляет собой базовую ошибку с кодом и сообщением
+type BaseError struct {
+	Code int    // Код ошибки
+	Err  string // Сообщение об ошибке
+}
+
+// Error возвращает сообщение об ошибке
+func (e *BaseError) Error() string {
+	return e.Err
+}
+
+// GetCode возвращает код ошибки
+func (e *BaseError) GetCode() int {
+	return e.Code
+}

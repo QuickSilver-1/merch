@@ -21,85 +21,73 @@ func NewTransaction() *Transaction {
 // Transfer выполняет перевод средств
 func (s *Transaction) Transfer(transaction domain.Transaction) error {
 	LoggerService.Debug("Transferring")
+
 	tx, err := postgres.DbService.Db.Begin()
-
 	if err != nil {
-		return &e.TransactionError{
-			Code: http.StatusInternalServerError,
-			Err:  fmt.Sprintf("Creating transaction error: %v", err),
-		}
+		return createTransactionError(err)
 	}
 
-	res, err := tx.Exec(`UPDATE Users SET "coins" = "coins" + $1 WHERE "email" = $2`, transaction.Amount, transaction.ReceiverName)
-	if err != nil {
-		err = tx.Rollback()
-		if err != nil {
-			LoggerService.Error(fmt.Sprintf("Rollback error: %v", err))
-		}
-
-		return &e.DbQueryError{
-			Code: http.StatusInternalServerError,
-			Err:  fmt.Sprintf("Db query error: %v", err),
-		}
+	if err := s.updateUserCoins(tx, transaction.ReceiverName, transaction.Amount); err != nil {
+		return s.rollbackTransaction(tx, err)
 	}
 
-	_, err = tx.Exec(`UPDATE Users SET "coins" = "coins" - $1 WHERE "email" = $2`, transaction.Amount, transaction.SenderName)
-	if err != nil {
-		err = tx.Rollback()
-		if err != nil {
-			LoggerService.Error(fmt.Sprintf("Rollback error: %v", err))
-		}
-		return &e.DbQueryError{
-			Code: http.StatusInternalServerError,
-			Err:  fmt.Sprintf("Db query error: %v", err),
-		}
+	if err := s.updateUserCoins(tx, transaction.SenderName, -transaction.Amount); err != nil {
+		return s.rollbackTransaction(tx, err)
 	}
 
-	amount, err := res.RowsAffected()
-
-	if err != nil {
-		err = tx.Rollback()
-		if err != nil {
-			LoggerService.Error(fmt.Sprintf("Rollback error: %v", err))
-		}
-		return &e.DbQueryError{
-			Code: http.StatusInternalServerError,
-			Err: fmt.Sprintf("Db query error: %v", err),
-		}
+	if err := s.insertTransaction(tx, transaction); err != nil {
+		return s.rollbackTransaction(tx, err)
 	}
 
-	if amount == 0 {
-		err = tx.Rollback()
-		if err != nil {
-			LoggerService.Error(fmt.Sprintf("Rollback error: %v", err))
-		}
-		return &e.TransactionError{
-			Code: http.StatusBadRequest,
-			Err: "Invalid user's email",
-		}
-	}
-
-	_, err = tx.Exec(`INSERT INTO Transaction("sender_name", "receiver_name", "amount") VALUES ($1, $2, $3)`, transaction.SenderName, transaction.ReceiverName, transaction.Amount)
-	if err != nil {
-		err = tx.Rollback()
-		if err != nil {
-			LoggerService.Error(fmt.Sprintf("Rollback error: %v", err))
-		}
-		return &e.DbQueryError{
-			Code: http.StatusInternalServerError,
-			Err:  fmt.Sprintf("Db query error: %v", err),
-		}
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return &e.TransactionError{
-			Code: http.StatusInternalServerError,
-			Err:  fmt.Sprintf("Commit error: %v", err),
-		}
+	if err := tx.Commit(); err != nil {
+		return createCommitError(err)
 	}
 
 	return nil
+}
+
+func (s *Transaction) updateUserCoins(tx *sql.Tx, email string, amount int) error {
+	_, err := tx.Exec(`UPDATE Users SET "coins" = "coins" + $1 WHERE "email" = $2`, amount, email)
+	if err != nil {
+		return createDbQueryError(err)
+	}
+	return nil
+}
+
+func (s *Transaction) insertTransaction(tx *sql.Tx, transaction domain.Transaction) error {
+	_, err := tx.Exec(`INSERT INTO Transaction("sender_name", "receiver_name", "amount") VALUES ($1, $2, $3)`, transaction.SenderName, transaction.ReceiverName, transaction.Amount)
+	if err != nil {
+		return createDbQueryError(err)
+	}
+	return nil
+}
+
+func (s *Transaction) rollbackTransaction(tx *sql.Tx, originalErr error) error {
+	if rbErr := tx.Rollback(); rbErr != nil {
+		LoggerService.Error(fmt.Sprintf("Rollback error: %v", rbErr))
+	}
+	return originalErr
+}
+
+func createTransactionError(err error) error {
+	return &e.TransactionError{
+		Code: http.StatusInternalServerError,
+		Err:  fmt.Sprintf("Creating transaction error: %v", err),
+	}
+}
+
+func createDbQueryError(err error) error {
+	return &e.DbQueryError{
+		Code: http.StatusInternalServerError,
+		Err:  fmt.Sprintf("Db query error: %v", err),
+	}
+}
+
+func createCommitError(err error) error {
+	return &e.TransactionError{
+		Code: http.StatusInternalServerError,
+		Err:  fmt.Sprintf("Commit error: %v", err),
+	}
 }
 
 // GetTransaction получает транзакции для указанного пользователя по email

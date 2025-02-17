@@ -9,18 +9,7 @@ import (
 const START_MONEY = 1000
 
 // InvalidPassword - ошибка неверного пароля
-type InvalidPassword struct {
-	Err  string
-	Code int
-}
-
-func (e *InvalidPassword) Error() string {
-	return e.Err
-}
-
-func (e *InvalidPassword) GetCode() int {
-	return e.Code
-}
+type InvalidPassword = domain.BaseError
 
 // UserService предоставляет методы для работы с пользователями
 type UserService struct {
@@ -33,10 +22,10 @@ type UserService struct {
 // NewUserService создает новый экземпляр UserService
 func NewUserService(user interfaces.UserRepo, auth interfaces.AuthRepo, transaction interfaces.TransactionRepo, inventory interfaces.InventoryRepo) *UserService {
 	return &UserService{
-		user: user,
-		auth: auth,
+		user:        user,
+		auth:        auth,
 		transaction: transaction,
-		inventory: inventory,
+		inventory:   inventory,
 	}
 }
 
