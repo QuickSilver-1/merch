@@ -1,6 +1,7 @@
 package realization
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -55,13 +56,17 @@ func (s *Auth) CreateToken(data domain.AuthorizationData) (*domain.Token, error)
 		}
 	}
 
-	_, err = postgres.DbService.Db.Exec(` DELETE FROM Token WHERE "user_id" = $1 `, data.Id)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	_, err = postgres.DbService.Db.ExecContext(ctx, ` DELETE FROM Token WHERE "user_id" = $1 `, data.Id)
 
 	if err != nil {
 		LoggerService.Error("Deleting token error")
 	}
 
-	_, err = postgres.DbService.Db.Exec(`INSERT INTO Token("user_id", "value") VALUES ($1, $2)`, data.Id, tokenS)
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	_, err = postgres.DbService.Db.ExecContext(ctx, `INSERT INTO Token("user_id", "value") VALUES ($1, $2)`, data.Id, tokenS)
 
 	if err != nil {
 		return nil, &e.DbQueryError{
@@ -108,7 +113,9 @@ func (s *Auth) Access(token domain.Token, userId domain.UserId) (*domain.Success
 	var exists = true
 
 	var id uint64
-	err := postgres.DbService.Db.QueryRow(`SELECT "user_id" FROM Token WHERE "value" = $1`, token).Scan(&id)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	err := postgres.DbService.Db.QueryRowContext(ctx, `SELECT "user_id" FROM Token WHERE "value" = $1`, token).Scan(&id)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

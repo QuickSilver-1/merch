@@ -1,6 +1,7 @@
 package realization
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	e "merch/internal/presentation/customError"
 	"merch/internal/presentation/postgres"
 	"net/http"
+	"time"
 )
 
 // User - структуру для работы с пользователями
@@ -22,7 +24,9 @@ func NewUser() *User {
 func (s *User) Create(user domain.User) (*domain.UserId, error) {
 	LoggerService.Debug("Creating user")
 	var id uint64
-	err := postgres.DbService.Db.QueryRow(`INSERT INTO Users ("email", "password", "coins") VALUES ($1, $2, $3) RETURNING "id"`, user.Email, user.Password, user.Coins).Scan(&id)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	err := postgres.DbService.Db.QueryRowContext(ctx, `INSERT INTO Users ("email", "password", "coins") VALUES ($1, $2, $3) RETURNING "id"`, user.Email, user.Password, user.Coins).Scan(&id)
 
 	if err != nil {
 		return nil, &e.UserCreatingError{
@@ -38,7 +42,9 @@ func (s *User) Create(user domain.User) (*domain.UserId, error) {
 func (s *User) GetById(id domain.UserId) (*domain.User, error) {
 	LoggerService.Debug("Getting user by id")
 	var user domain.User
-	err := postgres.DbService.Db.QueryRow(`SELECT "id", "email", "password", "coins" FROM Users WHERE "id" = $1`, id).Scan(&user.Id, &user.Email, &user.Password, &user.Coins)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	err := postgres.DbService.Db.QueryRowContext(ctx, `SELECT "id", "email", "password", "coins" FROM Users WHERE "id" = $1`, id).Scan(&user.Id, &user.Email, &user.Password, &user.Coins)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -61,7 +67,9 @@ func (s *User) GetById(id domain.UserId) (*domain.User, error) {
 func (s *User) GetByEmail(email domain.UserEmail) (*domain.User, error) {
 	LoggerService.Info("Getting user by email")
 	var user domain.User
-	err := postgres.DbService.Db.QueryRow(`SELECT "id", "email", "password", "coins" FROM Users WHERE "email" = $1`, email).Scan(&user.Id, &user.Email, &user.Password, &user.Coins)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	err := postgres.DbService.Db.QueryRowContext(ctx, `SELECT "id", "email", "password", "coins" FROM Users WHERE "email" = $1`, email).Scan(&user.Id, &user.Email, &user.Password, &user.Coins)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

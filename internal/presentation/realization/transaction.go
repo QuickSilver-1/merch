@@ -1,6 +1,7 @@
 package realization
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	e "merch/internal/presentation/customError"
 	"merch/internal/presentation/postgres"
 	"net/http"
+	"time"
 )
 
 // Transaction - структура для работы с транзакциями
@@ -47,7 +49,9 @@ func (s *Transaction) Transfer(transaction domain.Transaction) error {
 }
 
 func (s *Transaction) updateUserCoins(tx *sql.Tx, email string, amount int) error {
-	_, err := tx.Exec(`UPDATE Users SET "coins" = "coins" + $1 WHERE "email" = $2`, amount, email)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	_, err := tx.ExecContext(ctx, `UPDATE Users SET "coins" = "coins" + $1 WHERE "email" = $2`, amount, email)
 	if err != nil {
 		return createDbQueryError(err)
 	}
@@ -55,7 +59,9 @@ func (s *Transaction) updateUserCoins(tx *sql.Tx, email string, amount int) erro
 }
 
 func (s *Transaction) insertTransaction(tx *sql.Tx, transaction domain.Transaction) error {
-	_, err := tx.Exec(`INSERT INTO Transaction("sender_name", "receiver_name", "amount") VALUES ($1, $2, $3)`, transaction.SenderName, transaction.ReceiverName, transaction.Amount)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	_, err := tx.ExecContext(ctx, `INSERT INTO Transaction("sender_name", "receiver_name", "amount") VALUES ($1, $2, $3)`, transaction.SenderName, transaction.ReceiverName, transaction.Amount)
 	if err != nil {
 		return createDbQueryError(err)
 	}
@@ -93,7 +99,9 @@ func createCommitError(err error) error {
 // GetTransaction получает транзакции для указанного пользователя по email
 func (s *Transaction) GetTransaction(user domain.UserEmail) (*[]domain.Transaction, error) {
 	LoggerService.Debug("Getting transaction")
-	rows, err := postgres.DbService.Db.Query(`SELECT "id", "sender_name", "receiver_name", "amount" FROM Transaction WHERE "sender_name" = $1 OR "receiver_name" = $1`, user)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	rows, err := postgres.DbService.Db.QueryContext(ctx, `SELECT "id", "sender_name", "receiver_name", "amount" FROM Transaction WHERE "sender_name" = $1 OR "receiver_name" = $1`, user)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil

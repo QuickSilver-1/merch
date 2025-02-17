@@ -33,7 +33,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		parts := strings.Split(tokenStr, " ")
 		if len(parts) != 2 {
-			ctx.JSON(http.StatusUnauthorized, map[string]string{"errors1": STATUS_UNAUTHORIZED})
+			ctx.JSON(http.StatusUnauthorized, map[string]string{"errors": STATUS_UNAUTHORIZED})
 			ctx.Abort()
 			return
 		}
@@ -46,7 +46,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		if time.Now().Before(token.Expires) {
-			ctx.JSON(http.StatusUnauthorized, map[string]string{"errors2": fmt.Sprintf("%s - %s", STATUS_UNAUTHORIZED, "token expired")})
+			ctx.JSON(http.StatusUnauthorized, map[string]string{"errors": fmt.Sprintf("%s - %s", STATUS_UNAUTHORIZED, "token expired")})
 			ctx.Abort()
 			return
 		}
@@ -58,7 +58,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		if !*exists {
-			ctx.JSON(http.StatusUnauthorized, map[string]string{"errors3": fmt.Sprintf("%s - %s", STATUS_UNAUTHORIZED, "you are trying to log into someone else's account or the token for this account has been revoked")})
+			ctx.JSON(http.StatusUnauthorized, map[string]string{"errors": fmt.Sprintf("%s - %s", STATUS_UNAUTHORIZED, "you are trying to log into someone else's account or the token for this account has been revoked")})
 			ctx.Abort()
 			return
 		}

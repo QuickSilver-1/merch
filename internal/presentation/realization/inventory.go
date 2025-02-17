@@ -1,6 +1,7 @@
 package realization
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	e "merch/internal/presentation/customError"
 	"merch/internal/presentation/postgres"
 	"net/http"
+	"time"
 )
 
 // Inventory представляет собой структуру для работы с инвентарем
@@ -30,7 +32,9 @@ func (s *Inventory) Buy(userId domain.UserId, subject domain.Item) error {
 		}
 	}
 
-	_, err = tx.Exec(`UPDATE Users SET "coins" = "coins" - $1 WHERE "id" = $2`, subject.Cost, userId)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	_, err = tx.ExecContext(ctx, `UPDATE Users SET "coins" = "coins" - $1 WHERE "id" = $2`, subject.Cost, userId)
 	if err != nil {
 		err = tx.Rollback()
 		if err != nil {
@@ -42,7 +46,9 @@ func (s *Inventory) Buy(userId domain.UserId, subject domain.Item) error {
 		}
 	}
 
-	_, err = tx.Exec(`INSERT INTO Inventory ("subject_name", "user_id") VALUES ($1, $2)`, subject.Name, userId)
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	_, err = tx.ExecContext(ctx, `INSERT INTO Inventory ("subject_name", "user_id") VALUES ($1, $2)`, subject.Name, userId)
 	if err != nil {
 		err = tx.Rollback()
 		if err != nil {
@@ -69,7 +75,9 @@ func (s *Inventory) Buy(userId domain.UserId, subject domain.Item) error {
 func (s *Inventory) GetSubjectByName(name domain.UserEmail) (*domain.Item, error) {
 	LoggerService.Debug("Getting subject")
 	var subject domain.Item
-	err := postgres.DbService.Db.QueryRow(`SELECT "id", "name", "cost" FROM Subject WHERE "name" = $1`, name).Scan(&subject.Id, &subject.Name, &subject.Cost)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	err := postgres.DbService.Db.QueryRowContext(ctx, `SELECT "id", "name", "cost" FROM Subject WHERE "name" = $1`, name).Scan(&subject.Id, &subject.Name, &subject.Cost)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -90,7 +98,9 @@ func (s *Inventory) GetSubjectByName(name domain.UserEmail) (*domain.Item, error
 
 // GetInventory получает инвентарь пользователя по его идентификатору
 func (s *Inventory) GetInventory(userId domain.UserId) (*[]domain.Inventory, error) {
-	rows, err := postgres.DbService.Db.Query(`SELECT "id", "subject_name", "user_id" FROM Inventory WHERE "user_id" = $1`, userId)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	rows, err := postgres.DbService.Db.QueryContext(ctx, `SELECT "id", "subject_name", "user_id" FROM Inventory WHERE "user_id" = $1`, userId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
