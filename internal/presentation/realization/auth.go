@@ -55,6 +55,12 @@ func (s *Auth) CreateToken(data domain.AuthorizationData) (*domain.Token, error)
 		}
 	}
 
+	_, err = postgres.DbService.Db.Exec(` DELETE FROM Token WHERE "user_id" = $1 `, data.Id)
+
+	if err != nil {
+		LoggerService.Error("Deleting token error")
+	}
+
 	_, err = postgres.DbService.Db.Exec(`INSERT INTO Token("user_id", "value") VALUES ($1, $2)`, data.Id, tokenS)
 
 	if err != nil {
@@ -76,16 +82,10 @@ func (s *Auth) DecodeToken(tokenStr domain.Token) (*domain.AuthorizationToken, e
 	})
 
 	if err != nil {
-		if err == jwt.ErrSignatureInvalid {
-			return nil, &e.NeedAuthorization{
-				Code: http.StatusUnauthorized,
-				Err:  "Bad token's signature",
-			}
-		}
-
-		return nil, &e.JWTDecodeError{
-			Code: http.StatusInternalServerError,
-			Err:  fmt.Sprintf("JWT decode error: %v", err),
+		return nil, &e.NeedAuthorization{
+			Code: http.StatusUnauthorized,
+			Err:  "Bad token's signature",
+		
 		}
 	}
 
@@ -109,7 +109,7 @@ func (s *Auth) Access(token domain.Token, userId domain.UserId) (*domain.Success
 	var exists = true
 
 	var id uint64
-	err := postgres.DbService.Db.QueryRow(`SELECT "id" FROM Token WHERE "value" = $1`, token).Scan(&id)
+	err := postgres.DbService.Db.QueryRow(`SELECT "user_id" FROM Token WHERE "value" = $1`, token).Scan(&id)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

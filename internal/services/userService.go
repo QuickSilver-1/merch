@@ -54,6 +54,7 @@ func (s *UserService) Login(data domain.AuthorizationData) (*domain.Token, error
 		if err != nil {
 			return nil, err
 		}
+
 		data.Id = *id
 	} else {
 		// Проверка пароля
@@ -63,6 +64,8 @@ func (s *UserService) Login(data domain.AuthorizationData) (*domain.Token, error
 				Err:  "Invalid password or email",
 			}
 		}
+
+		data.Id = user.Id
 	}
 
 	// Создание токена авторизации
@@ -77,6 +80,7 @@ func (s *UserService) Login(data domain.AuthorizationData) (*domain.Token, error
 // GetInfo получает информацию о пользователе по его идентификатору
 func (s *UserService) GetInfo(userId uint64) (*domain.UserInfo, error) {
 	user, err := s.user.GetById(userId)
+
 	if err != nil {
 		return nil, err
 	}

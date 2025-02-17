@@ -30,6 +30,19 @@ func (s *Transaction) Transfer(transaction domain.Transaction) error {
 		}
 	}
 
+	res, err := tx.Exec(`UPDATE Users SET "coins" = "coins" + $1 WHERE "email" = $2`, transaction.Amount, transaction.ReceiverName)
+	if err != nil {
+		err = tx.Rollback()
+		if err != nil {
+			LoggerService.Error(fmt.Sprintf("Rollback error: %v", err))
+		}
+
+		return &e.DbQueryError{
+			Code: http.StatusInternalServerError,
+			Err:  fmt.Sprintf("Db query error: %v", err),
+		}
+	}
+
 	_, err = tx.Exec(`UPDATE Users SET "coins" = "coins" - $1 WHERE "email" = $2`, transaction.Amount, transaction.SenderName)
 	if err != nil {
 		err = tx.Rollback()
@@ -42,7 +55,31 @@ func (s *Transaction) Transfer(transaction domain.Transaction) error {
 		}
 	}
 
-	_, err = tx.Exec(`UPDATE Users SET "coins" = "coins" + $1 WHERE "email" = $2`, transaction.Amount, transaction.ReceiverName)
+	amount, err := res.RowsAffected()
+
+	if err != nil {
+		err = tx.Rollback()
+		if err != nil {
+			LoggerService.Error(fmt.Sprintf("Rollback error: %v", err))
+		}
+		return &e.DbQueryError{
+			Code: http.StatusInternalServerError,
+			Err: fmt.Sprintf("Db query error: %v", err),
+		}
+	}
+
+	if amount == 0 {
+		err = tx.Rollback()
+		if err != nil {
+			LoggerService.Error(fmt.Sprintf("Rollback error: %v", err))
+		}
+		return &e.TransactionError{
+			Code: http.StatusBadRequest,
+			Err: "Invalid user's email",
+		}
+	}
+
+	_, err = tx.Exec(`INSERT INTO Transaction("sender_name", "receiver_name", "amount") VALUES ($1, $2, $3)`, transaction.SenderName, transaction.ReceiverName, transaction.Amount)
 	if err != nil {
 		err = tx.Rollback()
 		if err != nil {

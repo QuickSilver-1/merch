@@ -64,6 +64,7 @@ func (*Handlers) GetInfo(ctx *gin.Context) {
 	}
 
 	inventory := make(map[string]int)
+
 	for _, subject := range info.Inventory {
 		quantity, exists := inventory[subject.Subject]
 
@@ -75,6 +76,7 @@ func (*Handlers) GetInfo(ctx *gin.Context) {
 	}
 
 	var userInfo userForm
+	userInfo.Coins = info.Coins
 	for name, quantity := range inventory {
 		userInfo.Inventory = append(userInfo.Inventory, inventoryForm{
 			Type:     name,
@@ -113,8 +115,8 @@ func (*Handlers) SendCoin(ctx *gin.Context) {
 		return
 	}
 
-	var transaction domain.Transaction
-	err := json.NewDecoder(ctx.Request.Body).Decode(&transaction)
+	var data senderTransaction
+	err := json.NewDecoder(ctx.Request.Body).Decode(&data)
 	defer func() {
 		err := ctx.Request.Body.Close()
 		if err != nil {
@@ -123,12 +125,20 @@ func (*Handlers) SendCoin(ctx *gin.Context) {
 	}()
 
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, map[string]string{"errors": STATUS_UNAUTHORIZED})
+		ctx.JSON(http.StatusBadRequest, map[string]string{"errors": STATUS_BAD_REQUEST})
+		ctx.Abort()
 		return
 	}
 
-	transaction.SenderName = token.Email
-	err = BuyService.MoneyTransfer(transaction)
+	if data.ToUser == token.Email {
+		answerError(ctx, &e.TransactionError{
+			Code: http.StatusBadRequest,
+			Err: "Translation for yourself",
+		})
+	}
+
+	transaction := domain.CreateTransaction(token.Email, data.ToUser, data.Amount)
+	err = BuyService.MoneyTransfer(*transaction)
 
 	if err != nil {
 		answerError(ctx, err)
@@ -177,12 +187,12 @@ func (*Handlers) Auth(ctx *gin.Context) {
 	}()
 
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, map[string]string{"errors": fmt.Sprintf("%s: %s", STATUS_BAD_REQUEST, "check input data")})
+		ctx.JSON(http.StatusBadRequest, map[string]string{"errors5": fmt.Sprintf("%s: %s", STATUS_BAD_REQUEST, "check input data")})
 		return
 	}
 
 	if !IsValidEmail(data.Username) {
-		ctx.JSON(http.StatusBadRequest, map[string]string{"errors": fmt.Sprintf("%s: %s invalid email", STATUS_BAD_REQUEST, data.Username)})
+		ctx.JSON(http.StatusBadRequest, map[string]string{"errors6": fmt.Sprintf("%s: %s invalid email", STATUS_BAD_REQUEST, data.Username)})
 		return
 	}
 
@@ -208,24 +218,33 @@ func answerError(ctx *gin.Context, err error) {
 
 	switch baseErr.GetCode() {
 	case http.StatusUnauthorized:
-		ctx.JSON(http.StatusUnauthorized, STATUS_UNAUTHORIZED)
+		ctx.JSON(http.StatusUnauthorized, map[string]string{"errors": STATUS_UNAUTHORIZED})
+		ctx.Abort()
 	case http.StatusInternalServerError:
 		realization.LoggerService.Error(baseErr.Error())
-		ctx.JSON(http.StatusInternalServerError, STATUS_INTERNAL_SERVER)
+		ctx.JSON(http.StatusInternalServerError, map[string]string{"errors": STATUS_INTERNAL_SERVER})
+		ctx.Abort()
 	case http.StatusBadRequest:
 		ctx.JSON(http.StatusBadRequest, map[string]string{"errors": fmt.Sprintf("%s: %s", STATUS_BAD_REQUEST, baseErr.Error())})
+		ctx.Abort()
 	}
 }
 
 // getJWT извлекает JWT токен из контекста
 func getJWT(ctx *gin.Context) *realization.Token {
-	tokenStr, exists := ctx.Get("token")
+	tokenAny, exists := ctx.Get("token")
 
 	if !exists {
 		ctx.JSON(http.StatusUnauthorized, map[string]string{"errors": STATUS_UNAUTHORIZED})
+		ctx.Abort()
 		return nil
 	}
 
-	token := tokenStr.(realization.Token)
-	return &token
+	tokenStr := tokenAny.(string)
+	token, _ := UserService.Token(tokenStr)
+
+	return &realization.Token{
+		Id: token.Id,
+		Email: token.Email,
+	}
 }

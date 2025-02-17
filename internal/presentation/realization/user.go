@@ -65,10 +65,7 @@ func (s *User) GetByEmail(email domain.UserEmail) (*domain.User, error) {
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, &e.RowsNotFoundError{
-				Code: http.StatusBadRequest,
-				Err:  "User not exists",
-			}
+			return nil, nil
 		}
 
 		return nil, &e.DbQueryError{

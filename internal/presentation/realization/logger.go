@@ -19,9 +19,9 @@ type Logger struct {
 }
 
 // NewLogger создает новый экземпляр логгера с заданным путем для вывода логов
-func NewLogger(path string) (interfaces.LoggerRepo, error) {
+func NewLogger() (interfaces.LoggerRepo, error) {
 	config := zap.NewDevelopmentConfig()
-	config.OutputPaths = []string{"stdout", path}
+	config.OutputPaths = []string{"stdout"}
 
 	logger, err := config.Build()
 	if err != nil {

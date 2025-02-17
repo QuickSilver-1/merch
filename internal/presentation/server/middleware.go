@@ -33,35 +33,37 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		parts := strings.Split(tokenStr, " ")
 		if len(parts) != 2 {
-			ctx.JSON(http.StatusUnauthorized, STATUS_UNAUTHORIZED)
+			ctx.JSON(http.StatusUnauthorized, map[string]string{"errors1": STATUS_UNAUTHORIZED})
+			ctx.Abort()
 			return
 		}
 
-		tokenStr = parts[1]
-		token, err := UserService.Token(tokenStr)
+		token, err := UserService.Token(parts[1])
 
 		if err != nil {
 			answerError(ctx, err)
 			return
 		}
 
-		if token.Expires.Before(time.Now()) {
-			ctx.JSON(http.StatusUnauthorized, fmt.Sprintf("%s - %s", STATUS_UNAUTHORIZED, "token expired"))
+		if time.Now().Before(token.Expires) {
+			ctx.JSON(http.StatusUnauthorized, map[string]string{"errors2": fmt.Sprintf("%s - %s", STATUS_UNAUTHORIZED, "token expired")})
+			ctx.Abort()
 			return
 		}
 
-		exists, err := UserService.Access(tokenStr, token.Id)
+		exists, err := UserService.Access(parts[1], token.Id)
 		if err != nil {
 			answerError(ctx, err)
 			return
 		}
 
 		if !*exists {
-			ctx.JSON(http.StatusUnauthorized, fmt.Sprintf("%s - %s", STATUS_UNAUTHORIZED, "you are trying to log into someone else's account or the token for this account has been revoked"))
+			ctx.JSON(http.StatusUnauthorized, map[string]string{"errors3": fmt.Sprintf("%s - %s", STATUS_UNAUTHORIZED, "you are trying to log into someone else's account or the token for this account has been revoked")})
+			ctx.Abort()
 			return
 		}
 
-		ctx.Set("token", token)
+		ctx.Set("token", parts[1])
 		ctx.Next()
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"merch/internal/presentation/postgres"
 	"merch/internal/presentation/realization"
 	"merch/internal/services"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -36,17 +35,12 @@ func NewServer() *Server {
 	h := NewHandlers()
 
 	srv.Use(LoggerMiddleware())
-	srv.GET("/api/auth", h.Auth)
+	srv.POST("/api/auth", h.Auth)
 
 	srv.Use(AuthMiddleware())
-	srv.POST("/api/info", h.GetInfo)
+	srv.GET("/api/info", h.GetInfo)
 	srv.POST("/api/sendCoin", h.SendCoin)
 	srv.GET("/api/buy/:item", h.BuyMerch)
-
-	// Обработка несуществующих маршрутов
-	srv.NoRoute(func(ctx *gin.Context) {
-		ctx.JSON(http.StatusBadRequest, "Invalid route")
-	})
 
 	realization.LoggerService.Info("Server has been created")
 	return &Server{

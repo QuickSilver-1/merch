@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	logger, err := realization.NewLogger("../../../log/log.log")
+	logger, err := realization.NewLogger()
 	if err != nil {
 		fmt.Println(err)
 		return
